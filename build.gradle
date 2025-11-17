@@ -35,6 +35,9 @@ dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     // Environment variable support
     implementation 'me.paulschwarz:spring-dotenv:3.0.0'
+    // validation API
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
     // Testing support
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

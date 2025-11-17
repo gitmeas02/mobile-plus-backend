@@ -1,22 +1,28 @@
-package com.example.mobile.user.dto;
+package com.example.mobile.user.entity;
 
-import jakarta.validation.constraints.NotBlank;
+import java.util.UUID;
 
-public class UserDTO {
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+
+@Entity
+public class UserEntity {
+    @Id
     private String id;
+    
+    @PrePersist
+    public void generateId() {
+        if (this.id == null) {
+            this.id = UUID.randomUUID().toString();
+        }
+    }
 
-    @NotBlank(message = "Name must not be blank")
+
     private String username;
-
-    @NotBlank(message = "Email must not be blank")
     private String email;
 
-    public UserDTO(){ } // Default constructor
-    public UserDTO(String id, String username, String email) {
-        this.id = id;
-        this.username = username;
-        this.email = email;
-    }
+
     public String getId() {
         return id;
     }
@@ -35,4 +41,7 @@ public class UserDTO {
     public void setEmail(String email) {
         this.email = email;
     }
+
+
+
 }
