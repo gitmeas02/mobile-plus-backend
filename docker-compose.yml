@@ -50,6 +50,7 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      APP_BASE_URL: ${APP_BASE_URL:https://mobilepluszeroapi.khunmeas.site}
     ports:
       - "8085:8080"
     networks:
