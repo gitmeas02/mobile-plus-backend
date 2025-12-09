@@ -51,7 +51,7 @@ services:
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
     ports:
-      - "8080:8080"
+      - "8085:8080"
     networks:
       - mobile_plus_network
     volumes:

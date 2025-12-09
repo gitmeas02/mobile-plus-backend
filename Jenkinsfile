@@ -147,7 +147,7 @@ EOF
                 echo 'Performing health check...'
                 script {
                     sleep(time: 30, unit: 'SECONDS')
-                    sh 'curl -f http://localhost:8080/auth/health || exit 1'
+                    sh 'curl -f http://localhost:8085/auth/health || exit 1'
                 }
             }
         }
