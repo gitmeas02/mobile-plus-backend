@@ -16,7 +16,7 @@ COPY .env ./.env
 RUN ./gradlew bootJar --no-daemon
 
 # Production stage
-FROM openjdk:21-jdk-slim
+FROM eclipse-temurin:21-jre-jammy
 
 # Set working directory
 WORKDIR /app
