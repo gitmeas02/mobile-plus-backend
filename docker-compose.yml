@@ -71,14 +71,13 @@ services:
     depends_on:
       - backend
     volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - mobile_plus_network
 
   cloudflare_tunnel:
     image: cloudflare/cloudflared:latest
-    restart: unless-stopped
+    command: tunnel run
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
     networks:
