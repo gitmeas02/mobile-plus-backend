@@ -53,11 +53,18 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         // Generate JWT token
         String token = jwtUtil.generateToken(user.getUsername());
         
-        // Redirect to frontend with token
-        String redirectUrl = String.format("http://localhost:3000/auth/callback?token=%s&user=%s&email=%s",
-                token, user.getUsername(), user.getEmail());
+        // For testing: return JSON response instead of redirect
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write(String.format(
+            "{\"success\":true,\"message\":\"OAuth2 login successful\",\"token\":\"%s\",\"username\":\"%s\",\"email\":\"%s\",\"provider\":\"%s\"}",
+            token, user.getUsername(), user.getEmail(), provider
+        ));
         
-        getRedirectStrategy().sendRedirect(request, response, redirectUrl);
+        // Uncomment below for frontend redirect (comment out JSON response above)
+        // String redirectUrl = String.format("http://localhost:3000/auth/callback?token=%s&user=%s&email=%s",
+        //         token, user.getUsername(), user.getEmail());
+        // getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
 
     private UserEntity findOrCreateUser(String email, String name, String provider, String oauthId) {
@@ -85,6 +92,15 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     }
 
     private String determineProvider(HttpServletRequest request) {
+        // Check the request URI for the registration ID
+        String requestUri = request.getRequestURI();
+        if (requestUri != null) {
+            if (requestUri.contains("/google")) return "google";
+            if (requestUri.contains("/github")) return "github";
+            if (requestUri.contains("/telegram")) return "telegram";
+        }
+        
+        // Fallback: check referer header
         String referer = request.getHeader("referer");
         if (referer != null) {
             if (referer.contains("google")) return "google";
