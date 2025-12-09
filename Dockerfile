@@ -12,6 +12,9 @@ COPY gradle ./gradle
 COPY src ./src
 COPY .env ./.env
 
+# ✅ Fix: Add execute permission for gradlew
+RUN chmod +x gradlew
+
 # Build the application
 RUN ./gradlew bootJar --no-daemon
 
