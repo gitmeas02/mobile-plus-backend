@@ -50,6 +50,8 @@ dependencies {
     
     // OAuth2 Client for Social Login (Google, GitHub)
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    // OAuth2 Resource Server for JWT/BearerTokenResolver
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     
     // Telegram Bot API
     implementation 'org.telegram:telegrambots:6.8.0'

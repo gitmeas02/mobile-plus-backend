@@ -4,8 +4,8 @@ import java.util.Date;
 
 import org.springframework.stereotype.Component;
 
-// import org.springframework.beans.factory.annotation.Value;
-
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
@@ -26,5 +26,21 @@ public class JwtUtil {
                 .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getExpirationMs()))
                 .signWith(SignatureAlgorithm.HS256, jwtProperties.getSecret())
                 .compact();
+    }
+
+    @SuppressWarnings("deprecation")
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parser().setSigningKey(jwtProperties.getSecret()).parseClaimsJws(token);
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    public String getUsernameFromToken(String token) {
+        Claims claims = Jwts.parser().setSigningKey(jwtProperties.getSecret()).parseClaimsJws(token).getBody();
+        return claims.getSubject();
     }
 }
