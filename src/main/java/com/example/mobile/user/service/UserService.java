@@ -1,9 +1,8 @@
 package com.example.mobile.user.service;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -20,13 +19,15 @@ public class UserService implements UserDetailsService {
     @Autowired // used for dependency injection
     private UserRepository userRepository;
     // get all users 
-    public List<UserModel> getAllUsers() {
-        List<UserEntity> userEntities = userRepository.findAll();
-        List<UserModel> userModels = new ArrayList<>();
-        for (UserEntity entity : userEntities) {
-            userModels.add(new UserModel(entity.getId(), entity.getUsername(), entity.getEmail()));
-        }
-        return userModels;
+    public Page<UserModel> getAllUsers(@org.springframework.lang.NonNull Pageable pageable) {
+        Page<UserEntity> userEntities = userRepository.findAll(pageable);
+        return userEntities.map(entity -> new UserModel(
+            entity.getId(),
+            entity.getUsername(),
+            entity.getEmail(),
+            entity.getRoles(),
+            entity.isEnabled()
+        ));
     }
 
     @Override
