@@ -36,7 +36,7 @@ public class SecurityConfig {
     @Autowired
     private JwtFilter jwtFilter;
 
-    @Value("${jwt.secret:myDefaultJwtSecretKeyForDevelopment}")
+    @Value("${jwt.secret}")
     private String jwtSecret;
 
     @Bean
@@ -112,7 +112,7 @@ public class SecurityConfig {
 
     @Bean
     public JwtDecoder jwtDecoder() {
-        String secret = jwtSecret != null ? jwtSecret : "myDefaultJwtSecretKeyForDevelopment";
+        String secret = jwtSecret;
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] keyBytes = digest.digest(secret.getBytes(StandardCharsets.UTF_8));
