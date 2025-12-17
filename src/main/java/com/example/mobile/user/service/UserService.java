@@ -22,7 +22,7 @@ public class UserService implements UserDetailsService {
     public Page<UserModel> getAllUsers(@org.springframework.lang.NonNull Pageable pageable) {
         Page<UserEntity> userEntities = userRepository.findAll(pageable);
         return userEntities.map(entity -> new UserModel(
-            entity.getId(),
+            entity.getId().toString(),
             entity.getUsername(),
             entity.getEmail(),
             entity.getRoles(),

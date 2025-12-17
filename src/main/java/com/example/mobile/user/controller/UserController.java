@@ -30,6 +30,5 @@ public class UserController {
     ) {
        Pageable pageable = PageRequest.of(page,size);
         return userService.getAllUsers(pageable);
-    }
-    
+    } 
 }

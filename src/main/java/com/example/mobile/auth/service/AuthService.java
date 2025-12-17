@@ -150,7 +150,7 @@ public class AuthService {
 
         AuthResponse response = new AuthResponse();
         response.setToken(token);
-        response.setUserId(user.getId());
+        response.setUserId(user.getId().toString());
         response.setUsername(user.getUsername());
         response.setEmail(user.getEmail());
         response.setMessage("Login successful!");
@@ -220,7 +220,7 @@ public class AuthService {
 
         AuthResponse response = new AuthResponse();
         response.setToken(token);
-        response.setUserId(user.getId());
+        response.setUserId(user.getId().toString());
         response.setUsername(user.getUsername());
         response.setEmail(user.getEmail());
         response.setMessage("OAuth login successful!");

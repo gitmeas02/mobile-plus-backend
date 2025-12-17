@@ -1,10 +1,17 @@
 package com.example.mobile.user.entity;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+import com.example.mobile.projects.entity.ProjectEntities;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -14,8 +21,10 @@ import jakarta.validation.constraints.NotNull;
 @Table(name = "users") // this is user table
 public class UserEntity {
 
-    @Id
-    private String id;
+    @Id 
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "user_id", updatable = false, nullable = false)
+    private UUID id;
 
     @Column(unique = true, nullable = false)
     private String username;
@@ -26,7 +35,12 @@ public class UserEntity {
     @NotNull(message = "Password should not be null")
     private String password;
 
+    @ManyToMany(mappedBy = "teamMembers")
+    private List<ProjectEntities> projects;
+
     private String phoneNumber;
+
+    private String fullname;
 
     private String roles; // e.g., "USER", "ADMIN"
 
@@ -61,13 +75,23 @@ public class UserEntity {
 
     private Instant updatedAt;
 
+    public UserEntity() {
+    }
+
+    // @PrePersist
+    // public void prePersist() {
+    //     if (this.id == null) {
+    //         this.id = UUID.randomUUID().toString();
+    //     }
+    //     createdAt = Instant.now();
+    //     updatedAt = Instant.now();
+    // }
+
     @PrePersist
     public void prePersist() {
-        if (this.id == null) {
-            this.id = java.util.UUID.randomUUID().toString();
-        }
-        createdAt = Instant.now();
-        updatedAt = Instant.now();
+        Instant now = Instant.now();
+        createdAt = now;
+        updatedAt = now;
     }
 
     @PreUpdate
@@ -75,10 +99,23 @@ public class UserEntity {
         updatedAt = Instant.now();
     }
 
+
+
     // ===== Getters and Setters =====
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+
+     public List<ProjectEntities> getProjects() {
+        return projects;
+    }
+
+    public void setProjects(List<ProjectEntities> projects) {
+        this.projects = projects;
+    }
+     public String getFullName() {
+        return this.fullname ; // Assuming username is the full name for simplicity
+    }
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
