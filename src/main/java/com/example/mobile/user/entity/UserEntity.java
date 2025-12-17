@@ -1,10 +1,7 @@
 package com.example.mobile.user.entity;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.UUID;
-
 import com.example.mobile.projects.entity.ProjectEntities;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -16,6 +13,10 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "users") // this is user table
@@ -36,6 +37,7 @@ public class UserEntity {
     private String password;
 
     @ManyToMany(mappedBy = "teamMembers")
+    @JsonIgnore
     private List<ProjectEntities> projects;
 
     private String phoneNumber;

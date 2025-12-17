@@ -5,7 +5,6 @@ public class CreateProjectRequestDTO {
     private String projectDescription;
     private String linkedInUrl;
     private List<String> teamMembers; // nullable 
-    private List<String> imageUrls; // nullable
     private List<String> technologiesUsed; // nullable
 
     public String getProjectName() {
@@ -22,10 +21,6 @@ public class CreateProjectRequestDTO {
 
     public List<String> getTeamMembers() {
         return teamMembers;
-    }
-
-    public List<String> getImageUrls() {
-        return imageUrls;
     }
 
     public List<String> getTechnologiesUsed() {

@@ -8,5 +8,6 @@ import com.example.mobile.projects.model.ProjectModel;
 public interface ProjectService {
    List<ProjectModel> getAllProjects(int page, int size);
     ProjectModel getProjectById(String projectId);
-    ProjectModel createProject(CreateProjectRequestDTO createProjectRequestDTO);  
+    ProjectModel createProject(CreateProjectRequestDTO createProjectRequestDTO);
+    void deleteProject(String projectId);
 }

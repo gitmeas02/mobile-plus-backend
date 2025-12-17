@@ -56,10 +56,14 @@ public class SecurityConfig {
                 "/otp/**",
                 "/oauth2/**",
                 "/error",
-                "/users/**"
+                "/users/**",
+                "/projects/**",
+                "/images/**"
             ).permitAll()
             // Protected endpoints
-            .requestMatchers("/me/**").authenticated()
+            .requestMatchers(
+                "/me/**"
+            ).authenticated()
             // .authenticated() this is mean only authenticated users can access /users/**
             // .hasRole("ADMIN") // only users with ADMIN role can access /users/**
             // .hasAnyRole("USER", "ADMIN")

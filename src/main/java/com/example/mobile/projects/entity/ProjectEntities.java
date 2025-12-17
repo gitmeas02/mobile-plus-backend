@@ -6,6 +6,9 @@ import java.util.List;
 import org.hibernate.annotations.CreationTimestamp;
 
 import com.example.mobile.user.entity.UserEntity;
+import com.example.mobile.technology.TechnologyEntity;
+import com.example.mobile.image.ImageEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -17,6 +20,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity
@@ -30,7 +36,7 @@ public class ProjectEntities {
     @Column(name = "project_id", updatable = false, nullable = false)
     private String projectId;
 
-    @Column(name = "project_name", nullable = false)
+    @Column(name = "project_name", nullable = false, unique = true)
     private String projectName;
 
     @Column(length = 600)
@@ -46,6 +52,7 @@ public class ProjectEntities {
         joinColumns = @JoinColumn(name = "project_id"),
         inverseJoinColumns = @JoinColumn(name = "user_id")
     )
+    @JsonIgnore
     private List<UserEntity> teamMembers;
 
       
@@ -53,11 +60,18 @@ public class ProjectEntities {
     @CollectionTable(name = "project_images", joinColumns = @JoinColumn(name = "project_id"))
     private List<String> imageUrls;
     
-    @ElementCollection
-    @CollectionTable(name = "technologies", joinColumns = @JoinColumn(name = "project_id"))
-    private List<String> technologiesUsed;
+    @ManyToMany
+    @JoinTable(
+        name = "project_technologies",
+        joinColumns = @JoinColumn(name = "project_id"),
+        inverseJoinColumns = @JoinColumn(name = "technology_id")
+    )
+    @JsonIgnore
+    private List<TechnologyEntity> technologiesUsed;
   
-    @CreationTimestamp
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<ImageEntity> images;
     @Column(name = "created_date", nullable = false, updatable = false)
     private LocalDateTime createdDate;
 
@@ -110,12 +124,20 @@ public class ProjectEntities {
         this.imageUrls = imageUrls;
     }
 
-    public List<String> getTechnologiesUsed() {
+    public List<TechnologyEntity> getTechnologiesUsed() {
         return technologiesUsed;
     }
 
-    public void setTechnologiesUsed(List<String> technologiesUsed) {
+    public void setTechnologiesUsed(List<TechnologyEntity> technologiesUsed) {
         this.technologiesUsed = technologiesUsed;
+    }
+
+    public List<ImageEntity> getImages() {
+        return images;
+    }
+
+    public void setImages(List<ImageEntity> images) {
+        this.images = images;
     }
 
     public LocalDateTime getCreatedDate() {

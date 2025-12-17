@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -48,8 +49,22 @@ public class ProjectController {
 
     // Create a new project
     @PostMapping
-    public ResponseEntity<ProjectModel> createProject(@RequestBody CreateProjectRequestDTO request) {
-        ProjectModel createdProject = projectService.createProject(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdProject);
+    public ResponseEntity<?> createProject(@RequestBody CreateProjectRequestDTO request) {
+        try {
+            ProjectModel createdProject = projectService.createProject(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdProject);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    // Delete project by ID
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteProject(@PathVariable String id) {
+        try {
+            projectService.deleteProject(id);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
