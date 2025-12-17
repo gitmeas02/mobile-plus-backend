@@ -56,10 +56,6 @@ public class ProjectEntities {
     private List<UserEntity> teamMembers;
 
       
-    @ElementCollection
-    @CollectionTable(name = "project_images", joinColumns = @JoinColumn(name = "project_id"))
-    private List<String> imageUrls;
-    
     @ManyToMany
     @JoinTable(
         name = "project_technologies",
@@ -114,14 +110,6 @@ public class ProjectEntities {
 
     public void setTeamMembers(List<UserEntity> teamMembers) {
         this.teamMembers = teamMembers;
-    }
-
-    public List<String> getImageUrls() {
-        return imageUrls;
-    }
-
-    public void setImageUrls(List<String> imageUrls) {
-        this.imageUrls = imageUrls;
     }
 
     public List<TechnologyEntity> getTechnologiesUsed() {

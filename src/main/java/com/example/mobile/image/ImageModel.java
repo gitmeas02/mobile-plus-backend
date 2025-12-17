@@ -1,7 +1,5 @@
 package com.example.mobile.image;
 
-import java.util.List;
-
 public class ImageModel {
     private Long id;
     private String fileName;
