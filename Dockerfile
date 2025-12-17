@@ -5,8 +5,8 @@ WORKDIR /app
 COPY build/libs/*.jar app.jar
 
 RUN mkdir -p uploads/images && \
-    chown -R appuser:appuser uploads && \
-    useradd -m -u 1000 appuser
+    useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser uploads
 USER appuser
 
 EXPOSE 8080
