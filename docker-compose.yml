@@ -57,7 +57,6 @@ services:
       - mobile_plus_network
     volumes:
       - ./logs:/app/logs
-      - ./uploads:/app/uploads
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/auth/health"]
       interval: 30s
