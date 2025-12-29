@@ -12,6 +12,12 @@ java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(21)
 	}
+	withJavadocJar()
+	withSourcesJar()
+}
+
+tasks.withType(JavaCompile) {
+        options.compilerArgs += ["-parameters"]
 }
 
 repositories {
@@ -67,3 +73,5 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+tasks.javadoc.enabled = false

@@ -40,6 +40,20 @@ public class JwtFilter extends OncePerRequestFilter {
             username = jwtUtil.getUsernameFromToken(jwt);
         }
 
+        // Check for JWT in cookie if not in header
+        if (jwt == null) {
+            jakarta.servlet.http.Cookie[] cookies = request.getCookies();
+            if (cookies != null) {
+                for (jakarta.servlet.http.Cookie cookie : cookies) {
+                    if ("jwt".equals(cookie.getName())) {
+                        jwt = cookie.getValue();
+                        username = jwtUtil.getUsernameFromToken(jwt);
+                        break;
+                    }
+                }
+            }
+        }
+
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
             if (jwtUtil.validateToken(jwt)) {

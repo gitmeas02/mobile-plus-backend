@@ -2,6 +2,7 @@ package com.example.mobile.auth.dto;
 
 public class AuthResponse {
     
+    private boolean success;
     private String token;
     private String message;
     private boolean requiresOtp;
@@ -69,5 +70,13 @@ public class AuthResponse {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public void setSuccess(boolean success) {
+        this.success = success;
     }
 }

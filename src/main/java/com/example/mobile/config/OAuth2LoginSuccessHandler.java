@@ -5,7 +5,9 @@ import java.time.Instant;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -33,6 +35,9 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException, ServletException {
@@ -53,18 +58,27 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         // Generate JWT token
         String token = jwtUtil.generateToken(user.getUsername());
         
-        // For testing: return JSON response instead of redirect
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-        response.getWriter().write(String.format(
-            "{\"success\":true,\"message\":\"OAuth2 login successful\",\"token\":\"%s\",\"username\":\"%s\",\"email\":\"%s\",\"provider\":\"%s\"}",
-            token, user.getUsername(), user.getEmail(), provider
-        ));
+        // Set HTTP-only cookie with the token
+        ResponseCookie cookie = ResponseCookie.from("jwt", token)
+            .httpOnly(true)
+            .secure(true)
+            .path("/")
+            .domain(".khunmeas.site")
+            .maxAge(60 * 60 * 24 * 7)
+            .sameSite("None")
+            .build();
+        response.addHeader("Set-Cookie", cookie.toString());
         
-        // Uncomment below for frontend redirect (comment out JSON response above)
-        // String redirectUrl = String.format("http://localhost:3000/auth/callback?token=%s&user=%s&email=%s",
-        //         token, user.getUsername(), user.getEmail());
-        // getRedirectStrategy().sendRedirect(request, response, redirectUrl);
+        // Redirect to frontend without params
+        getRedirectStrategy().sendRedirect(request, response, frontendUrl + "/");
+        
+        // Uncomment below for JSON response (comment out redirect above)
+        // response.setContentType("application/json");
+        // response.setCharacterEncoding("UTF-8");
+        // response.getWriter().write(String.format(
+        //     "{\"success\":true,\"message\":\"OAuth2 login successful\",\"token\":\"%s\",\"username\":\"%s\",\"email\":\"%s\",\"provider\":\"%s\"}",
+        //     token, user.getUsername(), user.getEmail(), provider
+        // ));
     }
 
     private UserEntity findOrCreateUser(String email, String name, String provider, String oauthId) {

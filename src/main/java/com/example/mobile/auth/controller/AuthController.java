@@ -18,21 +18,32 @@ import com.example.mobile.auth.dto.RegisterRequest;
 import com.example.mobile.auth.dto.ResendOTPRequest;
 import com.example.mobile.auth.dto.VerifyOTPRequest;
 import com.example.mobile.auth.service.AuthService;
+import com.example.mobile.user.entity.UserEntity;
+import com.example.mobile.user.repository.UserRepository;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.ResponseCookie;
 
 @RestController
 @RequestMapping("/auth")
 @Validated
+/**
+ * Controller for handling authentication-related operations such as registration, login, OTP verification, etc.
+ */
 public class AuthController {
     
     @Autowired
     private AuthService authService;
 
+    @Autowired
+    private UserRepository userRepository;
+
     /**
-     * Register a new user
-     * POST /auth/register
-     */
+ * Registers a new user.
+ * @param request the registration request
+ * @return the authentication response
+ */
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         try {
@@ -47,6 +58,8 @@ public class AuthController {
     /**
      * Login with email/username and password
      * POST /auth/login
+     * @param request the login request containing credentials
+     * @return the authentication response with token or error
      */
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -62,6 +75,8 @@ public class AuthController {
     /**
      * Verify OTP code
      * POST /auth/verify-otp
+     * @param request the OTP verification request
+     * @return the authentication response
      */
     @PostMapping("/verify-otp")
     public ResponseEntity<AuthResponse> verifyOTP(@Valid @RequestBody VerifyOTPRequest request) {
@@ -77,6 +92,8 @@ public class AuthController {
     /**
      * Resend OTP code
      * POST /auth/resend-otp
+     * @param request the resend OTP request
+     * @return the authentication response
      */
     @PostMapping("/resend-otp")
     public ResponseEntity<AuthResponse> resendOTP(@Valid @RequestBody ResendOTPRequest request) {
@@ -90,30 +107,61 @@ public class AuthController {
     }
 
     /**
-     * OAuth2 login success callback
-     * This is called after successful OAuth2 authentication
-     */
-    @GetMapping("/oauth2/success")
-    public ResponseEntity<AuthResponse> oauth2LoginSuccess(@AuthenticationPrincipal OAuth2User oauth2User) {
-        try {
-            String email = oauth2User.getAttribute("email");
-            String name = oauth2User.getAttribute("name");
-            String provider = oauth2User.getAttribute("provider"); // Will be set by OAuth2SuccessHandler
-            String oauthId = oauth2User.getName(); // OAuth provider's user ID
-
-            AuthResponse response = authService.handleOAuth2Login(email, name, provider, oauthId);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            AuthResponse errorResponse = new AuthResponse("OAuth2 login failed: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
-    }
-
-    /**
      * Health check endpoint
+     * @return a string indicating the service status
      */
     @GetMapping("/health")
     public ResponseEntity<String> healthCheck() {
         return ResponseEntity.ok("Auth service is running");
+    }
+
+    /**
+     * Test endpoint
+     * @return a string confirming the endpoint is working
+     */
+    @GetMapping("/test")
+    public ResponseEntity<String> test() {
+        return ResponseEntity.ok("Test endpoint working");
+    }
+
+    /**
+     * Get current user info
+     */
+    @GetMapping("/me")
+    public ResponseEntity<AuthResponse> me(@AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        // Find user entity
+        UserEntity user = userRepository.findByUsername(userDetails.getUsername())
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        AuthResponse response = new AuthResponse();
+        response.setUserId(user.getId().toString());
+        response.setUsername(user.getUsername());
+        response.setEmail(user.getEmail());
+        response.setSuccess(true);
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Logout endpoint
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(HttpServletResponse response) {
+        // Clear the JWT cookie
+        ResponseCookie cookie = ResponseCookie.from("jwt", "")
+            .httpOnly(true)
+            .secure(true)
+            .path("/")
+            .domain(".khunmeas.site")
+            .maxAge(0)
+            .sameSite("None")
+            .build();
+        response.addHeader("Set-Cookie", cookie.toString());
+        
+        return ResponseEntity.ok("Logged out successfully");
     }
 }

@@ -154,6 +154,7 @@ public class AuthService {
         response.setUsername(user.getUsername());
         response.setEmail(user.getEmail());
         response.setMessage("Login successful!");
+        response.setSuccess(true);
 
         return response;
     }
@@ -224,6 +225,7 @@ public class AuthService {
         response.setUsername(user.getUsername());
         response.setEmail(user.getEmail());
         response.setMessage("OAuth login successful!");
+        response.setSuccess(true);
 
         return response;
     }
