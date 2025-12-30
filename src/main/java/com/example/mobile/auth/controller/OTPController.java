@@ -7,7 +7,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.mobile.auth.dto.ApiResponse;
 import com.example.mobile.auth.dto.AuthResponse;
+import com.example.mobile.auth.dto.AuthSuccessData;
 import com.example.mobile.auth.dto.ResendOTPRequest;
 import com.example.mobile.auth.dto.VerifyOTPRequest;
 import com.example.mobile.auth.service.AuthService;
@@ -26,12 +28,12 @@ public class OTPController {
      * POST /otp/verify
      */
     @PostMapping("/verify")
-    public ResponseEntity<AuthResponse> verifyOTP(@Valid @RequestBody VerifyOTPRequest request) {
+    public ResponseEntity<ApiResponse<AuthSuccessData>> verifyOTP(@Valid @RequestBody VerifyOTPRequest request) {
         try {
-            AuthResponse response = authService.verifyOTP(request);
+            ApiResponse<AuthSuccessData> response = authService.verifyOTP(request);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            AuthResponse errorResponse = new AuthResponse(e.getMessage());
+            ApiResponse<AuthSuccessData> errorResponse = ApiResponse.error(400, e.getMessage());
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }

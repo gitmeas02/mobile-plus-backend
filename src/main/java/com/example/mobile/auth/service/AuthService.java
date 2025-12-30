@@ -3,16 +3,24 @@ package com.example.mobile.auth.service;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.Random;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.example.mobile.auth.dto.ApiResponse;
+import com.example.mobile.auth.dto.AuthData;
 import com.example.mobile.auth.dto.AuthResponse;
+import com.example.mobile.auth.dto.AuthSuccessData;
 import com.example.mobile.auth.dto.LoginRequest;
 import com.example.mobile.auth.dto.RegisterRequest;
+import com.example.mobile.auth.dto.UserData;
 import com.example.mobile.auth.dto.VerifyOTPRequest;
+import com.example.mobile.auth.utils.JwtProperties;
 import com.example.mobile.auth.utils.JwtUtil;
+import com.example.mobile.roles.Role;
+import com.example.mobile.roles.Scope;
 import com.example.mobile.user.entity.UserEntity;
 import com.example.mobile.user.repository.UserRepository;
 
@@ -27,6 +35,9 @@ public class AuthService {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private JwtProperties jwtProperties;
 
     @Autowired
     private EmailService emailService;
@@ -58,7 +69,7 @@ public class AuthService {
         user.setPhoneNumber(request.getPhoneNumber());
         user.setTelegramChatId(request.getTelegramChatId());
         user.setOtpDeliveryMethod(request.getOtpDeliveryMethod());
-        user.setRoles("USER");
+        user.setRoles(Role.USER);
         user.setEnabled(true);
         user.setOauthProvider("local"); // Local registration
 
@@ -124,7 +135,7 @@ public class AuthService {
     /**
      * Verify OTP and generate JWT token
      */
-    public AuthResponse verifyOTP(VerifyOTPRequest request) {
+    public ApiResponse<AuthSuccessData> verifyOTP(VerifyOTPRequest request) {
         UserEntity user = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -145,18 +156,33 @@ public class AuthService {
         user.setLastLogin(Instant.now());
         userRepository.save(user);
 
-        // Generate JWT token
-        String token = jwtUtil.generateToken(user.getUsername());
+        // Generate JWT tokens
+        String accessToken = jwtUtil.generateAccessToken(user.getId().toString(), user.getUsername(), user.getEmail(), user.getRoles());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getId().toString());
 
-        AuthResponse response = new AuthResponse();
-        response.setToken(token);
-        response.setUserId(user.getId().toString());
-        response.setUsername(user.getUsername());
-        response.setEmail(user.getEmail());
-        response.setMessage("Login successful!");
-        response.setSuccess(true);
+        // Store refresh token in database
+        user.setRefreshToken(refreshToken);
+        user.setRefreshTokenExpiry(Instant.now().plusMillis(jwtProperties.getRefreshTokenExpirationMs()));
+        userRepository.save(user);
 
-        return response;
+        // Create user data
+        UserData userData = new UserData(
+            user.getId().toString(),
+            user.getUsername(),
+            user.getFullname(),
+            user.getEmail(),
+            user.getRoles(),
+            Scope.READ_WRITE.getValue(),
+            user.isEnabled() ? "ACTIVE" : "INACTIVE"
+        );
+
+        // Create auth data
+        AuthData authData = new AuthData(accessToken, refreshToken, jwtProperties.getAccessTokenExpirationMs() / 1000);
+
+        // Create success data
+        AuthSuccessData successData = new AuthSuccessData(userData, authData);
+
+        return ApiResponse.success("Authentication successful", successData);
     }
 
     /**
@@ -191,7 +217,7 @@ public class AuthService {
     /**
      * Handle OAuth2 login (Google, GitHub, Telegram)
      */
-    public AuthResponse handleOAuth2Login(String email, String username, String oauthProvider, String oauthId) {
+    public ApiResponse<AuthSuccessData> handleOAuth2Login(String email, String username, String oauthProvider, String oauthId) {
         Optional<UserEntity> existingUser = userRepository.findByEmail(email);
 
         UserEntity user;
@@ -207,7 +233,7 @@ public class AuthService {
             user.setUsername(username != null ? username : email.split("@")[0]);
             user.setOauthProvider(oauthProvider);
             user.setOauthId(oauthId);
-            user.setRoles("USER");
+            user.setRoles(Role.USER);
             user.setEnabled(true);
             user.setOtpVerified(true); // OAuth users are pre-verified
             user.setPassword(passwordEncoder.encode(generateRandomPassword())); // Set random password
@@ -216,18 +242,28 @@ public class AuthService {
         user.setLastLogin(Instant.now());
         userRepository.save(user);
 
-        // Generate JWT token
-        String token = jwtUtil.generateToken(user.getUsername());
+        // Generate JWT tokens
+        String accessToken = jwtUtil.generateAccessToken(user.getId().toString(), user.getUsername(), user.getEmail(), user.getRoles());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getId().toString());
 
-        AuthResponse response = new AuthResponse();
-        response.setToken(token);
-        response.setUserId(user.getId().toString());
-        response.setUsername(user.getUsername());
-        response.setEmail(user.getEmail());
-        response.setMessage("OAuth login successful!");
-        response.setSuccess(true);
+        // Create user data
+        UserData userData = new UserData(
+            user.getId().toString(),
+            user.getUsername(),
+            user.getFullname(),
+            user.getEmail(),
+            user.getRoles(),
+            Scope.READ_WRITE.getValue(),
+            user.isEnabled() ? "ACTIVE" : "INACTIVE"
+        );
 
-        return response;
+        // Create auth data
+        AuthData authData = new AuthData(accessToken, refreshToken, jwtProperties.getAccessTokenExpirationMs() / 1000);
+
+        // Create success data
+        AuthSuccessData successData = new AuthSuccessData(userData, authData);
+
+        return ApiResponse.success("OAuth login successful", successData);
     }
 
     /**
@@ -256,6 +292,66 @@ public class AuthService {
             // Default to email
             emailService.sendOTPEmail(user.getEmail(), otpCode, user.getUsername());
         }
+    }
+
+    /**
+     * Refresh access token using refresh token
+     */
+    public ApiResponse<AuthSuccessData> refreshToken(String refreshToken) {
+        // Validate refresh token
+        if (!jwtUtil.validateToken(refreshToken) || jwtUtil.isTokenExpired(refreshToken)) {
+            throw new RuntimeException("Invalid or expired refresh token");
+        }
+
+        // Extract user ID from refresh token
+        String userId = jwtUtil.getUserIdFromToken(refreshToken);
+
+        // Find user
+        UserEntity user = userRepository.findById(UUID.fromString(userId))
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Check if user is enabled
+        if (!user.isEnabled()) {
+            throw new RuntimeException("Account is disabled");
+        }
+
+        // Verify the refresh token matches the stored one
+        if (user.getRefreshToken() == null || !user.getRefreshToken().equals(refreshToken)) {
+            throw new RuntimeException("Invalid refresh token");
+        }
+
+        // Check if stored refresh token is expired
+        if (user.getRefreshTokenExpiry() == null || Instant.now().isAfter(user.getRefreshTokenExpiry())) {
+            throw new RuntimeException("Refresh token expired");
+        }
+
+        // Generate new tokens
+        String newAccessToken = jwtUtil.generateAccessToken(user.getId().toString(), user.getUsername(), user.getEmail(), user.getRoles());
+        String newRefreshToken = jwtUtil.generateRefreshToken(user.getId().toString());
+
+        // Update stored refresh token
+        user.setRefreshToken(newRefreshToken);
+        user.setRefreshTokenExpiry(Instant.now().plusMillis(jwtProperties.getRefreshTokenExpirationMs()));
+        userRepository.save(user);
+
+        // Create user data
+        UserData userData = new UserData(
+            user.getId().toString(),
+            user.getUsername(),
+            user.getFullname(),
+            user.getEmail(),
+            user.getRoles(),
+            Scope.READ_WRITE.getValue(),
+            user.isEnabled() ? "ACTIVE" : "INACTIVE"
+        );
+
+        // Create auth data
+        AuthData authData = new AuthData(newAccessToken, newRefreshToken, jwtProperties.getAccessTokenExpirationMs() / 1000);
+
+        // Create success data
+        AuthSuccessData successData = new AuthSuccessData(userData, authData);
+
+        return ApiResponse.success("Token refreshed successfully", successData);
     }
 
     /**

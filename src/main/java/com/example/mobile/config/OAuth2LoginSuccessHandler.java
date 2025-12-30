@@ -14,29 +14,39 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
+import com.example.mobile.auth.dto.ApiResponse;
+import com.example.mobile.auth.dto.AuthData;
+import com.example.mobile.auth.dto.AuthSuccessData;
+import com.example.mobile.auth.dto.UserData;
+import com.example.mobile.auth.utils.JwtProperties;
 import com.example.mobile.auth.utils.JwtUtil;
+import com.example.mobile.roles.Role;
+import com.example.mobile.roles.Scope;
 import com.example.mobile.user.entity.UserEntity;
 import com.example.mobile.user.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-@Component
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
+    private final PasswordEncoder passwordEncoder;
+    private final String frontendUrl;
+    private final ObjectMapper objectMapper;
+    private final JwtProperties jwtProperties;
 
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    @Lazy
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Value("${app.frontend-url}")
-    private String frontendUrl;
+    public OAuth2LoginSuccessHandler(UserRepository userRepository, JwtUtil jwtUtil, PasswordEncoder passwordEncoder, String frontendUrl, ObjectMapper objectMapper, JwtProperties jwtProperties) {
+        this.userRepository = userRepository;
+        this.jwtUtil = jwtUtil;
+        this.passwordEncoder = passwordEncoder;
+        this.frontendUrl = frontendUrl;
+        this.objectMapper = objectMapper;
+        this.jwtProperties = jwtProperties;
+    }
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -52,57 +62,66 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         // Determine provider from registration ID
         String provider = determineProvider(request);
         
-        // Find or create user
-        UserEntity user = findOrCreateUser(email, name, provider, oauthId);
-        
-        // Generate JWT token
-        String token = jwtUtil.generateToken(user.getUsername());
-        
-        // Set HTTP-only cookie with the token
-        ResponseCookie cookie = ResponseCookie.from("jwt", token)
-            .httpOnly(true)
-            .secure(true)
-            .path("/")
-            .domain(".khunmeas.site")
-            .maxAge(60 * 60 * 24 * 7)
-            .sameSite("None")
-            .build();
-        response.addHeader("Set-Cookie", cookie.toString());
-        
-        // Redirect to frontend without params
-        getRedirectStrategy().sendRedirect(request, response, frontendUrl + "/");
-        
-        // Uncomment below for JSON response (comment out redirect above)
-        // response.setContentType("application/json");
-        // response.setCharacterEncoding("UTF-8");
-        // response.getWriter().write(String.format(
-        //     "{\"success\":true,\"message\":\"OAuth2 login successful\",\"token\":\"%s\",\"username\":\"%s\",\"email\":\"%s\",\"provider\":\"%s\"}",
-        //     token, user.getUsername(), user.getEmail(), provider
-        // ));
-    }
-
-    private UserEntity findOrCreateUser(String email, String name, String provider, String oauthId) {
+        // Handle OAuth2 login directly
         Optional<UserEntity> existingUser = userRepository.findByEmail(email);
 
+        UserEntity user;
         if (existingUser.isPresent()) {
-            UserEntity user = existingUser.get();
+            // User exists, update OAuth info
+            user = existingUser.get();
             user.setOauthProvider(provider);
             user.setOauthId(oauthId);
-            user.setLastLogin(Instant.now());
-            return userRepository.save(user);
         } else {
-            UserEntity newUser = new UserEntity();
-            newUser.setEmail(email);
-            newUser.setUsername(name != null ? name.replaceAll("\\s+", "") : email.split("@")[0]);
-            newUser.setOauthProvider(provider);
-            newUser.setOauthId(oauthId);
-            newUser.setRoles("USER");
-            newUser.setEnabled(true);
-            newUser.setOtpVerified(true); // OAuth users are pre-verified
-            newUser.setPassword(passwordEncoder.encode(generateRandomPassword()));
-            newUser.setLastLogin(Instant.now());
-            return userRepository.save(newUser);
+            // Create new user from OAuth
+            user = new UserEntity();
+            user.setEmail(email);
+            user.setUsername(name != null ? name.replaceAll("\\s+", "") : email.split("@")[0]);
+            user.setOauthProvider(provider);
+            user.setOauthId(oauthId);
+            user.setRoles(Role.USER);
+            user.setEnabled(true);
+            user.setOtpVerified(true); // OAuth users are pre-verified
+            user.setPassword(passwordEncoder.encode(generateRandomPassword())); // Set random password
         }
+
+        user.setLastLogin(Instant.now());
+        userRepository.save(user);
+
+        // Generate JWT tokens
+        String accessToken = jwtUtil.generateAccessToken(user.getId().toString(), user.getUsername(), user.getEmail(), user.getRoles());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getId().toString());
+
+        // Store refresh token in database
+        user.setRefreshToken(refreshToken);
+        user.setRefreshTokenExpiry(Instant.now().plusMillis(jwtProperties.getRefreshTokenExpirationMs()));
+        userRepository.save(user);
+
+        // Log successful save
+        System.out.println("OAuth2 login successful for user: " + user.getEmail() + ", refreshToken saved: " + (user.getRefreshToken() != null));
+
+        // Create user data
+        UserData userData = new UserData(
+            user.getId().toString(),
+            user.getUsername(),
+            user.getFullname(),
+            user.getEmail(),
+            user.getRoles(),
+            Scope.READ_WRITE.getValue(),
+            user.isEnabled() ? "ACTIVE" : "INACTIVE"
+        );
+
+        // Create auth data
+        AuthData authData = new AuthData(accessToken, refreshToken, 3600L); // 1 hour expiration
+
+        // Create success data
+        AuthSuccessData successData = new AuthSuccessData(userData, authData);
+
+        ApiResponse<AuthSuccessData> apiResponse = ApiResponse.success("OAuth login successful", successData);
+        
+        // Return JSON response
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
     }
 
     private String determineProvider(HttpServletRequest request) {

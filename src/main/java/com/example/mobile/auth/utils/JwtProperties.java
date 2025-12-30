@@ -7,7 +7,8 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "jwt")
 public class JwtProperties {
     private String secret;
-    private Long expirationMs;
+    private Long accessTokenExpirationMs = 900000L; // 15 minutes
+    private Long refreshTokenExpirationMs = 604800000L; // 7 days
 
     public String getSecret() {
         return secret;
@@ -17,11 +18,19 @@ public class JwtProperties {
         this.secret = secret;
     }
 
-    public Long getExpirationMs() {
-        return expirationMs;
+    public Long getAccessTokenExpirationMs() {
+        return accessTokenExpirationMs;
     }
 
-    public void setExpirationMs(Long expirationMs) {
-        this.expirationMs = expirationMs;
+    public void setAccessTokenExpirationMs(Long accessTokenExpirationMs) {
+        this.accessTokenExpirationMs = accessTokenExpirationMs;
+    }
+
+    public Long getRefreshTokenExpirationMs() {
+        return refreshTokenExpirationMs;
+    }
+
+    public void setRefreshTokenExpirationMs(Long refreshTokenExpirationMs) {
+        this.refreshTokenExpirationMs = refreshTokenExpirationMs;
     }
 }

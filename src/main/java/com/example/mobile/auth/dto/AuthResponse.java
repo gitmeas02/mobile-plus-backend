@@ -3,7 +3,10 @@ package com.example.mobile.auth.dto;
 public class AuthResponse {
     
     private boolean success;
-    private String token;
+    private String accessToken;
+    private String refreshToken;
+    private String tokenType = "Bearer";
+    private Long expiresIn;
     private String message;
     private boolean requiresOtp;
     private String userId;
@@ -16,20 +19,47 @@ public class AuthResponse {
         this.message = message;
     }
 
-    public AuthResponse(String token, String userId, String username, String email) {
-        this.token = token;
+    public AuthResponse(String accessToken, String refreshToken, Long expiresIn, String userId, String username, String email) {
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        this.expiresIn = expiresIn;
         this.userId = userId;
         this.username = username;
         this.email = email;
+        this.success = true;
     }
 
     // Getters and Setters
-    public String getToken() {
-        return token;
+    public String getAccessToken() {
+        return accessToken;
     }
 
-    public void setToken(String token) {
-        this.token = token;
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+    }
+
+    public String getRefreshToken() {
+        return refreshToken;
+    }
+
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
+
+    public String getTokenType() {
+        return tokenType;
+    }
+
+    public void setTokenType(String tokenType) {
+        this.tokenType = tokenType;
+    }
+
+    public Long getExpiresIn() {
+        return expiresIn;
+    }
+
+    public void setExpiresIn(Long expiresIn) {
+        this.expiresIn = expiresIn;
     }
 
     public String getMessage() {
@@ -78,5 +108,14 @@ public class AuthResponse {
 
     public void setSuccess(boolean success) {
         this.success = success;
+    }
+
+    // Backward compatibility
+    public String getToken() {
+        return accessToken;
+    }
+
+    public void setToken(String token) {
+        this.accessToken = token;
     }
 }

@@ -27,25 +27,38 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.example.mobile.auth.utils.JwtFilter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-import jakarta.servlet.http.HttpServletRequest;
+import com.example.mobile.auth.utils.JwtFilter;
+import com.example.mobile.auth.utils.JwtProperties;
+import com.example.mobile.auth.utils.JwtUtil;
+import com.example.mobile.user.repository.UserRepository;
+
 import jakarta.servlet.http.HttpServletResponse;
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
-
+    
     @Autowired
-    private OAuth2LoginSuccessHandler oauth2LoginSuccessHandler;
-
+    private JwtProperties jwtProperties;
+    
     @Autowired
     private JwtFilter jwtFilter;
 
-    @Value("${jwt.secret}")
-    private String jwtSecret;
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Value("${app.cors.allowed-origins}")
     private String corsAllowedOrigins;
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -96,7 +109,7 @@ public class SecurityConfig {
         // OAuth2 login
         http.oauth2Login(oauth2 -> oauth2
             .loginPage("/auth/oauth2") // custom endpoint
-            .successHandler(oauth2LoginSuccessHandler)
+            .successHandler(oauth2LoginSuccessHandler())
             .failureHandler((request, response, exception) -> {
                 response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -126,6 +139,11 @@ public class SecurityConfig {
     }
 
     @Bean
+    public OAuth2LoginSuccessHandler oauth2LoginSuccessHandler() {
+        return new OAuth2LoginSuccessHandler(userRepository, jwtUtil, passwordEncoder(), frontendUrl, objectMapper, jwtProperties);
+    }
+
+    @Bean
     public AuthenticationManager authenticationManager(
         AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
@@ -145,13 +163,14 @@ public class SecurityConfig {
 
     @Bean
     public JwtDecoder jwtDecoder() {
-        String secret = jwtSecret;
+        String secret = jwtProperties.getSecret();
+        if (secret == null || secret.isEmpty()) {
+            throw new IllegalArgumentException("JWT secret is not configured. Please set jwt.secret property.");
+        }
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] keyBytes = digest.digest(secret.getBytes(StandardCharsets.UTF_8));
-            SecretKeySpec secretKey = new SecretKeySpec(keyBytes, "HmacSHA256");
+            SecretKeySpec secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
             return NimbusJwtDecoder.withSecretKey(secretKey).build();
-        } catch (NoSuchAlgorithmException e) {
+        } catch (Exception e) {
             throw new RuntimeException("Failed to create JWT decoder", e);
         }
     }

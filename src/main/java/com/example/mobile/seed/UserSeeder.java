@@ -7,6 +7,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import com.example.mobile.roles.Role;
 import com.example.mobile.user.entity.UserEntity;
 import com.example.mobile.user.repository.UserRepository;
 
@@ -34,7 +35,7 @@ public class UserSeeder implements CommandLineRunner {
         admin.setUsername("admin");
         admin.setEmail("admin@mobileplus.com");
         admin.setPassword(passwordEncoder.encode("Admin@123"));
-        admin.setRoles("ADMIN,USER");
+        admin.setRoles(Role.ADMIN);
         admin.setEnabled(true);
         admin.setOtpVerified(true);
         admin.setOtpDeliveryMethod("EMAIL");
@@ -47,7 +48,7 @@ public class UserSeeder implements CommandLineRunner {
         user1.setUsername("testuser");
         user1.setEmail("testuser@example.com");
         user1.setPassword(passwordEncoder.encode("Test@123"));
-        user1.setRoles("USER");
+        user1.setRoles(Role.USER);
         user1.setEnabled(true);
         user1.setOtpVerified(true);
         user1.setOtpDeliveryMethod("EMAIL");
@@ -60,7 +61,7 @@ public class UserSeeder implements CommandLineRunner {
         user2.setUsername("telegramuser");
         user2.setEmail("telegram@example.com");
         user2.setPassword(passwordEncoder.encode("Telegram@123"));
-        user2.setRoles("USER");
+        user2.setRoles(Role.USER);
         user2.setEnabled(true);
         user2.setOtpVerified(true);
         user2.setOtpDeliveryMethod("TELEGRAM");
@@ -74,7 +75,7 @@ public class UserSeeder implements CommandLineRunner {
         oauthUser.setUsername("googleuser");
         oauthUser.setEmail("googleuser@gmail.com");
         oauthUser.setPassword(passwordEncoder.encode("Google@123")); // Fallback password
-        oauthUser.setRoles("USER");
+        oauthUser.setRoles(Role.USER);
         oauthUser.setEnabled(true);
         oauthUser.setOtpVerified(true);
         oauthUser.setOauthProvider("google");

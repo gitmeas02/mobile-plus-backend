@@ -47,8 +47,6 @@ jobs:
         MY_SQL_USER=root
         MY_SQL_PASSWORD=root
         MY_SQL_DB=mobile_plus_test_db
-        JWT_SECRET=test_jwt_secret_key_for_ci_cd_pipeline_only
-        JWT_EXPIRATION_MS=86400000
         MAIL_USERNAME=test@example.com
         MAIL_PASSWORD=test_password
         TELEGRAM_BOT_TOKEN=test_token

@@ -1,6 +1,7 @@
 package com.example.mobile.user.entity;
 
 import com.example.mobile.projects.entity.ProjectEntities;
+import com.example.mobile.roles.Role;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
@@ -44,7 +45,7 @@ public class UserEntity {
 
     private String fullname;
 
-    private String roles; // e.g., "USER", "ADMIN"
+    private Role roles = Role.USER; // Default role
 
     private boolean enabled = true;
 
@@ -67,6 +68,7 @@ public class UserEntity {
 
     private boolean otpVerified = false;
 
+    @Column(length = 2048)
     private String refreshToken;
 
     private Instant refreshTokenExpiry;
@@ -131,8 +133,11 @@ public class UserEntity {
     public String getPhoneNumber() { return phoneNumber; }
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
 
-    public String getRoles() { return roles; }
-    public void setRoles(String roles) { this.roles = roles; }
+    public String getFullname() { return fullname; }
+    public void setFullname(String fullname) { this.fullname = fullname; }
+
+    public Role getRoles() { return roles; }
+    public void setRoles(Role roles) { this.roles = roles; }
 
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }

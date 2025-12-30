@@ -12,9 +12,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.mobile.auth.dto.ApiResponse;
 import com.example.mobile.auth.dto.AuthResponse;
+import com.example.mobile.auth.dto.AuthSuccessData;
 import com.example.mobile.auth.dto.LoginRequest;
 import com.example.mobile.auth.dto.RegisterRequest;
+import com.example.mobile.auth.dto.RefreshTokenRequest;
 import com.example.mobile.auth.dto.ResendOTPRequest;
 import com.example.mobile.auth.dto.VerifyOTPRequest;
 import com.example.mobile.auth.service.AuthService;
@@ -79,13 +82,30 @@ public class AuthController {
      * @return the authentication response
      */
     @PostMapping("/verify-otp")
-    public ResponseEntity<AuthResponse> verifyOTP(@Valid @RequestBody VerifyOTPRequest request) {
+    public ResponseEntity<ApiResponse<AuthSuccessData>> verifyOTP(@Valid @RequestBody VerifyOTPRequest request) {
         try {
-            AuthResponse response = authService.verifyOTP(request);
+            ApiResponse<AuthSuccessData> response = authService.verifyOTP(request);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            AuthResponse errorResponse = new AuthResponse(e.getMessage());
+            ApiResponse<AuthSuccessData> errorResponse = ApiResponse.error(400, e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        }
+    }
+
+    /**
+     * Refresh access token using refresh token
+     * POST /auth/refresh
+     * @param request the refresh token request
+     * @return the authentication response with new tokens
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<AuthSuccessData>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        try {
+            ApiResponse<AuthSuccessData> response = authService.refreshToken(request.getRefreshToken());
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            ApiResponse<AuthSuccessData> errorResponse = ApiResponse.error(401, e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
         }
     }
 
@@ -163,5 +183,16 @@ public class AuthController {
         response.addHeader("Set-Cookie", cookie.toString());
         
         return ResponseEntity.ok("Logged out successfully");
+    }
+
+    /**
+     * Initiate Google OAuth2 login
+     */
+    @GetMapping("/google") // request http://localhost:8080/auth/google
+    public ResponseEntity<String> googleLogin() {
+        // Redirect to the OAuth2 authorization endpoint
+        return ResponseEntity.status(HttpStatus.FOUND)
+            .header("Location", "/oauth2/authorization/google")
+            .build();
     }
 }
