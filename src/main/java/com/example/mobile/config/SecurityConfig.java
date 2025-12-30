@@ -35,24 +35,28 @@ import com.example.mobile.auth.utils.JwtUtil;
 import com.example.mobile.user.repository.UserRepository;
 
 import jakarta.servlet.http.HttpServletResponse;
+
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
-    
-    @Autowired
-    private JwtProperties jwtProperties;
-    
-    @Autowired
-    private JwtFilter jwtFilter;
-
-    @Autowired
-    private UserRepository userRepository;
 
     @Autowired
     private JwtUtil jwtUtil;
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private JwtProperties jwtProperties;
+
+    @Autowired
+    private JwtFilter jwtFilter;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Value("${app.cors.allowed-origins}")
     private String corsAllowedOrigins;
@@ -134,13 +138,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    @Bean
     public OAuth2LoginSuccessHandler oauth2LoginSuccessHandler() {
-        return new OAuth2LoginSuccessHandler(userRepository, jwtUtil, passwordEncoder(), frontendUrl, objectMapper, jwtProperties);
+        return new OAuth2LoginSuccessHandler(userRepository, jwtUtil, passwordEncoder, frontendUrl, objectMapper, jwtProperties);
     }
 
     @Bean

@@ -88,7 +88,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         userRepository.save(user);
 
         // Generate JWT tokens
-        String accessToken = jwtUtil.generateAccessToken(user.getId().toString(), user.getUsername(), user.getEmail(), user.getRoles());
+        String accessToken = jwtUtil.generateAccessToken(user.getId().toString(), user.getUsername(), user.getEmail(), user.getRoles(), user.getFullname(), user.isEnabled());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId().toString());
 
         // Store refresh token in database
@@ -99,24 +99,10 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         // Log successful save
         System.out.println("OAuth2 login successful for user: " + user.getEmail() + ", refreshToken saved: " + (user.getRefreshToken() != null));
 
-        // Create user data
-        UserData userData = new UserData(
-            user.getId().toString(),
-            user.getUsername(),
-            user.getFullname(),
-            user.getEmail(),
-            user.getRoles(),
-            Scope.READ_WRITE.getValue(),
-            user.isEnabled() ? "ACTIVE" : "INACTIVE"
-        );
-
         // Create auth data
         AuthData authData = new AuthData(accessToken, refreshToken, 3600L); // 1 hour expiration
 
-        // Create success data
-        AuthSuccessData successData = new AuthSuccessData(userData, authData);
-
-        ApiResponse<AuthSuccessData> apiResponse = ApiResponse.success("OAuth login successful", successData);
+        ApiResponse<AuthData> apiResponse = ApiResponse.success("OAuth login successful", authData);
         
         // Return JSON response
         response.setContentType("application/json");

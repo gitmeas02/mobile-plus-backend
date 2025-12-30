@@ -2,10 +2,9 @@ package com.example.mobile.auth.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,27 +12,27 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.mobile.auth.dto.ApiResponse;
+import com.example.mobile.auth.dto.AuthData;
 import com.example.mobile.auth.dto.AuthResponse;
-import com.example.mobile.auth.dto.AuthSuccessData;
 import com.example.mobile.auth.dto.LoginRequest;
-import com.example.mobile.auth.dto.RegisterRequest;
 import com.example.mobile.auth.dto.RefreshTokenRequest;
+import com.example.mobile.auth.dto.RegisterRequest;
 import com.example.mobile.auth.dto.ResendOTPRequest;
 import com.example.mobile.auth.dto.VerifyOTPRequest;
 import com.example.mobile.auth.service.AuthService;
+import com.example.mobile.auth.utils.JwtProperties;
+import com.example.mobile.auth.utils.JwtUtil;
 import com.example.mobile.user.entity.UserEntity;
 import com.example.mobile.user.repository.UserRepository;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.springframework.http.ResponseCookie;
 
-@RestController
-@RequestMapping("/auth")
-@Validated
 /**
  * Controller for handling authentication-related operations such as registration, login, OTP verification, etc.
  */
+@RestController
+@RequestMapping("/auth")
 public class AuthController {
     
     @Autowired
@@ -41,6 +40,12 @@ public class AuthController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private JwtProperties jwtProperties;
 
     /**
  * Registers a new user.
@@ -82,12 +87,12 @@ public class AuthController {
      * @return the authentication response
      */
     @PostMapping("/verify-otp")
-    public ResponseEntity<ApiResponse<AuthSuccessData>> verifyOTP(@Valid @RequestBody VerifyOTPRequest request) {
+    public ResponseEntity<ApiResponse<AuthData>> verifyOTP(@Valid @RequestBody VerifyOTPRequest request) {
         try {
-            ApiResponse<AuthSuccessData> response = authService.verifyOTP(request);
+            ApiResponse<AuthData> response = authService.verifyOTP(request);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            ApiResponse<AuthSuccessData> errorResponse = ApiResponse.error(400, e.getMessage());
+            ApiResponse<AuthData> errorResponse = ApiResponse.error(400, e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         }
     }
@@ -99,12 +104,12 @@ public class AuthController {
      * @return the authentication response with new tokens
      */
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<AuthSuccessData>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<ApiResponse<AuthData>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         try {
-            ApiResponse<AuthSuccessData> response = authService.refreshToken(request.getRefreshToken());
+            ApiResponse<AuthData> response = authService.refreshToken(request.getRefreshToken());
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            ApiResponse<AuthSuccessData> errorResponse = ApiResponse.error(401, e.getMessage());
+            ApiResponse<AuthData> errorResponse = ApiResponse.error(401, e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
         }
     }
@@ -157,11 +162,23 @@ public class AuthController {
         UserEntity user = userRepository.findByUsername(userDetails.getUsername())
             .orElseThrow(() -> new RuntimeException("User not found"));
         
+        // Generate new tokens
+        String accessToken = jwtUtil.generateAccessToken(user.getId().toString(), user.getUsername(), user.getEmail(), user.getRoles(), user.getFullname(), user.isEnabled());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getId().toString());
+        
+        // Store refresh token in database
+        user.setRefreshToken(refreshToken);
+        user.setRefreshTokenExpiry(java.time.Instant.now().plusMillis(jwtProperties.getRefreshTokenExpirationMs()));
+        userRepository.save(user);
+        
         AuthResponse response = new AuthResponse();
         response.setUserId(user.getId().toString());
         response.setUsername(user.getUsername());
         response.setEmail(user.getEmail());
         response.setSuccess(true);
+        response.setAccessToken(accessToken);
+        response.setRefreshToken(refreshToken);
+        response.setExpiresIn(jwtProperties.getAccessTokenExpirationMs() / 1000); // in seconds
         
         return ResponseEntity.ok(response);
     }
